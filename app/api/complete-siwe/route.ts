@@ -11,12 +11,21 @@ interface IRequestPayload {
 }
 
 export async function POST(req: NextRequest) {
+  console.log('[API] SIWE verification request received')
+  
   const { payload, nonce, username, profilePictureUrl } = (await req.json()) as IRequestPayload
+  console.log('[API] Request data:', { 
+    address: payload.address, 
+    username, 
+    hasProfilePicture: !!profilePictureUrl 
+  })
   
   // Verify the nonce matches the one we created
   const cookieStore = await cookies()
   const storedNonce = cookieStore.get("siwe")?.value
+  
   if (!storedNonce || storedNonce !== nonce) {
+    console.error('[API] Invalid nonce:', { storedNonce: !!storedNonce, match: storedNonce === nonce })
     return NextResponse.json({
       status: "error",
       isValid: false,
@@ -26,14 +35,18 @@ export async function POST(req: NextRequest) {
   
   try {
     // Verify the SIWE message signature
+    console.log('[API] Verifying SIWE message...')
     const validMessage = await verifySiweMessage(payload, nonce)
     
     if (validMessage.isValid) {
+      console.log('[API] SIWE verification successful')
+      
       // Clear the used nonce
       const cookieStore = await cookies()
       cookieStore.delete("siwe")
       
       // Create or update user in Supabase
+      console.log('[API] Checking for existing user...')
       const { data: existingUser } = await supabaseAdmin
         .from('users')
         .select('*')
@@ -48,16 +61,27 @@ export async function POST(req: NextRequest) {
       }
 
       if (existingUser) {
+        console.log('[API] Updating existing user:', existingUser.id)
         // Update existing user
         await supabaseAdmin
           .from('users')
           .update(userData)
           .eq('wallet_address', payload.address)
+        console.log('[API] User updated successfully')
       } else {
+        console.log('[API] Creating new user')
         // Create new user
-        await supabaseAdmin
+        const { data: newUser, error: insertError } = await supabaseAdmin
           .from('users')
           .insert(userData)
+          .select()
+          .single()
+        
+        if (insertError) {
+          console.error('[API] Error creating user:', insertError)
+        } else {
+          console.log('[API] New user created:', newUser.id)
+        }
       }
       
       return NextResponse.json({
@@ -66,6 +90,7 @@ export async function POST(req: NextRequest) {
         address: payload.address,
       })
     } else {
+      console.error('[API] SIWE verification failed')
       return NextResponse.json({
         status: "error",
         isValid: false,
@@ -73,7 +98,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
   } catch (error: any) {
-    console.error("SIWE verification error:", error)
+    console.error('[API] SIWE verification error:', error)
     return NextResponse.json({
       status: "error",
       isValid: false,

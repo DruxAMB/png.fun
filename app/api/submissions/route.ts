@@ -9,10 +9,14 @@ interface SubmissionRequest {
 }
 
 export async function POST(req: NextRequest) {
+  console.log('[API] Creating new submission...')
+  
   try {
     const { challengeId, userId, photoData } = (await req.json()) as SubmissionRequest
+    console.log('[API] Submission request:', { challengeId, userId, photoDataLength: photoData?.length })
 
     if (!challengeId || !userId || !photoData) {
+      console.error('[API] Missing required fields:', { challengeId: !!challengeId, userId: !!userId, photoData: !!photoData })
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -20,9 +24,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Upload photo to storage
+    console.log('[API] Uploading photo to Supabase Storage...')
     const photoUrl = await uploadPhoto(photoData, userId)
+    console.log('[API] Photo uploaded successfully:', photoUrl)
 
     // Create submission in database
+    console.log('[API] Creating submission record in database...')
     const { data: submission, error } = await supabaseAdmin
       .from('submissions')
       .insert({
@@ -35,23 +42,28 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Error creating submission:', error)
+      console.error('[API] Error creating submission:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    console.log('[API] Submission created successfully:', submission.id)
     return NextResponse.json({ submission })
   } catch (error: any) {
-    console.error('Submission creation error:', error)
+    console.error('[API] Submission creation error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
 export async function GET(req: NextRequest) {
+  console.log('[API] Fetching submissions...')
+  
   try {
     const { searchParams } = new URL(req.url)
     const challengeId = searchParams.get('challengeId')
+    console.log('[API] Challenge ID:', challengeId)
 
     if (!challengeId) {
+      console.error('[API] Challenge ID required')
       return NextResponse.json(
         { error: "Challenge ID required" },
         { status: 400 }
@@ -59,6 +71,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Get all submissions for a challenge with user data
+    console.log('[API] Querying submissions with user data...')
     const { data: submissions, error } = await supabaseAdmin
       .from('submissions')
       .select(`
@@ -69,13 +82,14 @@ export async function GET(req: NextRequest) {
       .order('total_wld_voted', { ascending: false })
 
     if (error) {
-      console.error('Error fetching submissions:', error)
+      console.error('[API] Error fetching submissions:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    console.log('[API] Found', submissions?.length || 0, 'submissions')
     return NextResponse.json({ submissions })
   } catch (error: any) {
-    console.error('Submissions fetch error:', error)
+    console.error('[API] Submissions fetch error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

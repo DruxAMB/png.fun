@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 
 interface ChallengeHeaderProps {
   title: string
+  description?: string
   timeRemaining: string
   submissionCount: number
   prizePool: string
@@ -14,6 +15,7 @@ interface ChallengeHeaderProps {
 
 export function ChallengeHeader({
   title,
+  description,
   timeRemaining,
   submissionCount,
   prizePool,
@@ -66,7 +68,7 @@ export function ChallengeHeader({
         {isExpanded && (
           <div className="mt-4 pt-4 border-t-2 border-foreground space-y-4">
             <p className="text-sm font-bold leading-relaxed text-muted-foreground">
-              Submit your best photo that captures this moment. Be creative and authentic. Top voted photos win prizes.
+              {description || "Submit your best photo that captures this moment. Be creative and authentic. Top voted photos win prizes."}
             </p>
           </div>
         )}

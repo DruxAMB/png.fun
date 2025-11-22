@@ -1,7 +1,8 @@
-import { supabase } from './supabase'
+import { supabaseAdmin } from './supabase'
 
 /**
  * Upload a photo to Supabase Storage
+ * Uses admin client to bypass RLS policies
  * @param file - The file to upload (base64 data URL or File object)
  * @param userId - The user ID for organizing uploads
  * @returns The public URL of the uploaded photo
@@ -28,9 +29,9 @@ export async function uploadPhoto(
     const randomString = Math.random().toString(36).substring(7)
     const filename = `${userId}/${timestamp}-${randomString}.jpg`
 
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from('photos')
+    // Upload to Supabase Storage using admin client
+    const { data, error } = await supabaseAdmin.storage
+      .from('pngfun')
       .upload(filename, fileToUpload, {
         contentType: 'image/jpeg',
         upsert: false,
@@ -41,9 +42,9 @@ export async function uploadPhoto(
       throw error
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('photos')
+    // Get public URL using admin client
+    const { data: urlData } = supabaseAdmin.storage
+      .from('pngfun')
       .getPublicUrl(data.path)
 
     return urlData.publicUrl
@@ -61,13 +62,13 @@ export async function deletePhoto(photoUrl: string): Promise<void> {
   try {
     // Extract path from URL
     const url = new URL(photoUrl)
-    const path = url.pathname.split('/photos/')[1]
+    const path = url.pathname.split('/pngfun/')[1]
 
     if (!path) {
       throw new Error('Invalid photo URL')
     }
 
-    const { error } = await supabase.storage.from('photos').remove([path])
+    const { error } = await supabaseAdmin.storage.from('pngfun').remove([path])
 
     if (error) {
       console.error('Delete error:', error)

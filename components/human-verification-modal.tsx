@@ -2,7 +2,7 @@
 
 import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { NeoButton } from "@/components/neo-button"
-import { ScanFace, Camera } from "lucide-react"
+import { ScanFace, Camera, CheckCircle2 } from "lucide-react"
 import { MiniKit, VerificationLevel, ISuccessResult } from "@worldcoin/minikit-js"
 import { useState, useCallback, useRef } from "react"
 
@@ -10,14 +10,29 @@ interface HumanVerificationModalProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   onVerify: (photoUrl?: string) => void
+  isVerified?: boolean
+  walletAddress?: string
 }
 
-export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: HumanVerificationModalProps) {
+export function HumanVerificationModal({ 
+  isOpen, 
+  onOpenChange, 
+  onVerify,
+  isVerified = false,
+  walletAddress
+}: HumanVerificationModalProps) {
   const [loading, setLoading] = useState(false)
-  const [verified, setVerified] = useState(false)
+  const [verified, setVerified] = useState(isVerified)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleVerify = useCallback(async () => {
+    // Skip verification if already verified
+    if (isVerified) {
+      console.log('[Verification] User already verified, skipping World ID check')
+      setVerified(true)
+      return
+    }
+
     if (!MiniKit.isInstalled()) {
       console.warn("MiniKit not installed, falling back to mock verification for browser testing")
       // For browser testing without MiniKit - show camera button
@@ -43,6 +58,7 @@ export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: Human
             payload: finalPayload as ISuccessResult,
             action: "verifyhuman",
             signal: undefined, // Optional
+            walletAddress: walletAddress, // Pass wallet address to mark user as verified
           }),
         })
 
@@ -65,7 +81,7 @@ export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: Human
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [isVerified, walletAddress])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

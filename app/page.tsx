@@ -9,6 +9,7 @@ import { LeaderboardScreen } from "@/components/leaderboard-screen"
 import { ProfileScreen } from "@/components/profile-screen"
 import { OnboardingScreen } from "@/components/onboarding-screen"
 import { HumanVerificationModal } from "@/components/human-verification-modal"
+import { AlreadySubmittedModal } from "@/components/already-submitted-modal"
 import { PhotoPreviewScreen } from "@/components/photo-preview-screen"
 import { SuccessScreen } from "@/components/success-screen"
 import { useEffect } from "react"
@@ -214,49 +215,93 @@ export default function Home() {
   const [leaderboardData, setLeaderboardData] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
   const [userId, setUserId] = React.useState<string | null>(null)
+  const [isWorldIdVerified, setIsWorldIdVerified] = React.useState(false)
+  const [hasSubmittedToday, setHasSubmittedToday] = React.useState(false)
+  const [showAlreadySubmittedModal, setShowAlreadySubmittedModal] = React.useState(false)
 
   // Get authenticated user
   const user = useUser()
 
-  // Fetch user ID from database when wallet address is available
+  // Fetch user ID and verification status from database when wallet address is available
   useEffect(() => {
-    const fetchUserId = async () => {
-      if (user.isAuthenticated && user.walletAddress) {
-        const { data } = await supabase
+    const fetchUserData = async () => {
+      if (user.isAuthenticated && user.walletAddress && supabase) {
+        console.log('[Frontend] Fetching user data for wallet:', user.walletAddress)
+        const { data, error } = await supabase
           .from('users')
-          .select('id')
+          .select('id, world_id_verified')
           .eq('wallet_address', user.walletAddress)
           .single()
         
-        if (data) {
+        if (error) {
+          console.error('[Frontend] Error fetching user data:', error)
+        } else if (data) {
+          console.log('[Frontend] User data found:', data.id, 'Verified:', data.world_id_verified)
           setUserId(data.id)
+          setIsWorldIdVerified(data.world_id_verified || false)
+        } else {
+          console.warn('[Frontend] No user found for wallet:', user.walletAddress)
+        }
+      } else if (!supabase) {
+        console.warn('[Frontend] Supabase client not initialized - check environment variables')
+      }
+    }
+
+    fetchUserData()
+  }, [user.isAuthenticated, user.walletAddress])
+
+  // Check if user has already submitted for current challenge
+  useEffect(() => {
+    const checkExistingSubmission = async () => {
+      if (userId && challenge && supabase) {
+        console.log('[Frontend] Checking for existing submission:', { userId, challengeId: challenge.id })
+        const { data, error } = await supabase
+          .from('submissions')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('challenge_id', challenge.id)
+          .single()
+        
+        if (data) {
+          console.log('[Frontend] User has already submitted for this challenge')
+          setHasSubmittedToday(true)
+        } else {
+          console.log('[Frontend] No existing submission found')
+          setHasSubmittedToday(false)
         }
       }
     }
 
-    fetchUserId()
-  }, [user.isAuthenticated, user.walletAddress])
+    checkExistingSubmission()
+  }, [userId, challenge])
 
   // Fetch active challenge
   const fetchChallenge = async () => {
+    console.log('[Frontend] Fetching active challenge...')
     try {
       const res = await fetch('/api/challenges')
       const data = await res.json()
+      console.log('[Frontend] Challenge response:', data)
       if (data.challenge) {
+        console.log('[Frontend] Challenge loaded:', data.challenge.title, 'Prize:', data.challenge.prize_pool, 'WLD')
         setChallenge(data.challenge)
         // Fetch submissions for this challenge
         fetchSubmissions(data.challenge.id)
+      } else {
+        console.log('[Frontend] No active challenge found')
       }
     } catch (error) {
-      console.error('Error fetching challenge:', error)
+      console.error('[Frontend] Error fetching challenge:', error)
     }
   }
 
   // Fetch submissions for voting
   const fetchSubmissions = async (challengeId: string) => {
+    console.log('[Frontend] Fetching submissions for challenge:', challengeId)
     try {
       const res = await fetch(`/api/submissions?challengeId=${challengeId}`)
       const data = await res.json()
+      console.log('[Frontend] Submissions response:', data.submissions?.length || 0, 'submissions')
       if (data.submissions) {
         // Transform to match expected format
         const transformed = data.submissions.map((sub: any) => ({
@@ -268,10 +313,11 @@ export default function Home() {
           wld: sub.total_wld_voted,
           potentialWld: sub.total_wld_voted * 2,
         }))
+        console.log('[Frontend] Transformed submissions:', transformed.length)
         setSubmissions(transformed)
       }
     } catch (error) {
-      console.error('Error fetching submissions:', error)
+      console.error('[Frontend] Error fetching submissions:', error)
     } finally {
       setLoading(false)
     }
@@ -279,9 +325,11 @@ export default function Home() {
 
   // Fetch leaderboard
   const fetchLeaderboard = async () => {
+    console.log('[Frontend] Fetching leaderboard...')
     try {
       const res = await fetch('/api/leaderboard?limit=10')
       const data = await res.json()
+      console.log('[Frontend] Leaderboard response:', data.leaderboard?.length || 0, 'users')
       if (data.leaderboard) {
         const transformed = data.leaderboard.map((user: any, index: number) => ({
           rank: index + 1,
@@ -291,10 +339,11 @@ export default function Home() {
           wins: user.total_wins,
           imageUrl: '/placeholder.svg',
         }))
+        console.log('[Frontend] Leaderboard transformed:', transformed.length, 'entries')
         setLeaderboardData(transformed)
       }
     } catch (error) {
-      console.error('Error fetching leaderboard:', error)
+      console.error('[Frontend] Error fetching leaderboard:', error)
     }
   }
 
@@ -328,6 +377,13 @@ export default function Home() {
   }
 
   const handleCameraClick = () => {
+    // Check if user has already submitted for today's challenge
+    if (hasSubmittedToday) {
+      console.log('[Frontend] User has already submitted for this challenge')
+      setShowAlreadySubmittedModal(true)
+      return
+    }
+    
     setIsVerificationOpen(true)
   }
 
@@ -449,6 +505,7 @@ export default function Home() {
               <div className="relative z-10">
                 <ChallengeHeader
                   title={challenge?.title || "Loading..."}
+                  description={challenge?.description}
                   timeRemaining={challenge ? calculateTimeRemaining(challenge.end_time) : "..."}
                   submissionCount={submissions.length}
                   prizePool={challenge?.prize_pool ? `${challenge.prize_pool} WLD` : "..."}
@@ -493,6 +550,13 @@ export default function Home() {
         isOpen={isVerificationOpen}
         onOpenChange={setIsVerificationOpen}
         onVerify={handleVerify}
+        isVerified={isWorldIdVerified}
+        walletAddress={user.walletAddress}
+      />
+
+      <AlreadySubmittedModal
+        isOpen={showAlreadySubmittedModal}
+        onOpenChange={setShowAlreadySubmittedModal}
       />
 
       {showPhotoPreview && capturedPhotoUrl && (
