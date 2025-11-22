@@ -191,14 +191,68 @@ export default function Home() {
   // Get authenticated user
   const user = useUser();
 
+  // Check for existing user on mount (World App doesn't persist MiniKit.user)
+  useEffect(() => {
+    const checkForExistingUser = async () => {
+      if (user.isLoading) return;
+
+      // If already authenticated, skip onboarding check
+      if (user.isAuthenticated) {
+        setCheckingOnboarding(false);
+        return;
+      }
+
+      console.log('🔍 [ONBOARDING] Checking if current user has completed onboarding...');
+
+      // Check if the current user (from session cookie) has completed onboarding
+      try {
+        const response = await fetch('/api/check-worldapp-user');
+
+        if (response.ok) {
+          const { hasUser, user: existingUser } = await response.json();
+          if (hasUser && existingUser?.onboarding_completed) {
+            console.log('✅ [ONBOARDING] User has completed onboarding - skipping');
+            setShowOnboarding(false);
+            setCheckingOnboarding(false);
+            return;
+          }
+        }
+      } catch (e) {
+        console.log('❌ [ONBOARDING] Error checking for existing user');
+      }
+
+      // No user with completed onboarding found - show onboarding
+      console.log('⚠️ [ONBOARDING] No completed onboarding found - showing onboarding screen');
+      setShowOnboarding(true);
+      setCheckingOnboarding(false);
+    };
+
+    // Small delay to let app initialize
+    const timer = setTimeout(checkForExistingUser, 500);
+    return () => clearTimeout(timer);
+  }, [user.isLoading, user.isAuthenticated]);
+
   // Fetch user ID and verification status from database when wallet address is available
   useEffect(() => {
     const fetchUserData = async () => {
+      // Send debug info to API so we can see it in terminal
+      await fetch('/api/debug-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: user.walletAddress,
+          username: user.username,
+          isAuthenticated: user.isAuthenticated,
+          miniKitUser: typeof window !== 'undefined' && (window as any).MiniKit?.user
+        })
+      }).catch(() => {});
+
       // Wait for user auth to load
-      if (user.isLoading) return;
+      if (user.isLoading) {
+        return;
+      }
 
       if (user.isAuthenticated && user.walletAddress && supabase) {
-        console.log('[Frontend] Fetching user data for wallet:', user.walletAddress);
         const { data, error } = await supabase
           .from('users')
           .select(
@@ -208,11 +262,8 @@ export default function Home() {
           .single();
 
         if (error) {
-          console.error('[Frontend] Error fetching user data:', error);
-          // If error (likely user doesn't exist yet), show onboarding
           setShowOnboarding(true);
         } else if (data) {
-          console.log('[Frontend] User data found:', data);
           setUserId(data.id);
           setIsWorldIdVerified(data.world_id_verified || false);
 
@@ -224,7 +275,6 @@ export default function Home() {
 
           // Check onboarding status from DB
           if (data.onboarding_completed) {
-            console.log('[Frontend] User has completed onboarding (DB)');
             setShowOnboarding(false);
 
             // Check if notifications need to be enabled
@@ -240,7 +290,7 @@ export default function Home() {
                     setShowNotificationPrompt(true);
                   } else {
                     console.log(
-                      '[Frontend] Notifications already granted in MiniKit, syncing to DB'
+                      '✅ [NOTIFICATION ENABLED #4] Auto-sync - MiniKit already has permission, syncing to DB'
                     );
                     // Sync to DB
                     await fetch('/api/user/status', {
@@ -258,7 +308,6 @@ export default function Home() {
               }
             }
           } else {
-            console.log('[Frontend] User has NOT completed onboarding (DB)');
             setShowOnboarding(true);
           }
 
@@ -267,7 +316,6 @@ export default function Home() {
             (!data.username || !data.profile_picture_url) &&
             (MiniKit.user?.username || MiniKit.user?.profilePictureUrl)
           ) {
-            console.log('[Frontend] Syncing missing username/PFP from MiniKit to DB');
             try {
               await fetch('/api/user/status', {
                 method: 'POST',
@@ -278,38 +326,13 @@ export default function Home() {
                   profilePictureUrl: MiniKit.user.profilePictureUrl
                 })
               });
-              console.log('[Frontend] Username/PFP sync completed');
-            } catch (e) {
-              console.error('[Frontend] Error syncing username/PFP:', e);
-            }
+            } catch (e) {}
           }
 
-          // Sync notification status if MiniKit is installed
-          if (MiniKit.isInstalled()) {
-            try {
-              const { finalPayload } = await MiniKit.commandsAsync.getPermissions();
-              if (finalPayload.status === 'success') {
-                const hasNotifications = finalPayload.permissions.notifications;
-                if (hasNotifications !== data.notifications_enabled) {
-                  console.log('[Frontend] Syncing notification status to DB:', hasNotifications);
-                  // Update DB if mismatch
-                  await fetch('/api/user/status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      walletAddress: user.walletAddress,
-                      notificationsEnabled: hasNotifications
-                    })
-                  });
-                }
-              }
-            } catch (e) {
-              console.error('[Frontend] Error checking permissions:', e);
-            }
-          }
+          // Note: Removed auto-sync of notification status to prevent race conditions
+          // DB is the source of truth for notifications_enabled
         }
       } else if (!user.isAuthenticated) {
-        // Not authenticated, show onboarding to guide them to sign in
         setShowOnboarding(true);
       }
 
@@ -561,7 +584,7 @@ export default function Home() {
   // Show loading screen while checking user/onboarding
   if (user.isLoading || checkingOnboarding) {
     return (
-      <div className="fixed inset-0 bg-background flex items-center justify-center z-[100]">
+      <div className="fixed inset-0 bg-background flex items-center justify-center z-100">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           <div className="text-xl font-black uppercase tracking-widest animate-pulse">
@@ -736,10 +759,9 @@ export default function Home() {
   };
 
   const handleNotificationPromptComplete = async (enabled: boolean) => {
-    console.log('[Frontend] Notification prompt completed, enabled:', enabled);
+    console.log('📝 [NOTIFICATION PROMPT] Saving to DB - enabled:', enabled);
     setShowNotificationPrompt(false);
 
-    // Update DB with notification status
     if (user.walletAddress) {
       try {
         await fetch('/api/user/status', {
@@ -750,9 +772,9 @@ export default function Home() {
             notificationsEnabled: enabled
           })
         });
-        console.log('[Frontend] Notification status saved to DB');
+        console.log('✅ [NOTIFICATION PROMPT] DB updated successfully');
       } catch (error) {
-        console.error('[Frontend] Error saving notification status:', error);
+        console.error('❌ [NOTIFICATION PROMPT] Error:', error);
       }
     }
   };

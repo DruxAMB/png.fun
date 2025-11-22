@@ -6,11 +6,13 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const username = searchParams.get('username');
 
+    console.log('🔍 [API BY-USERNAME] ==================');
+    console.log('🔍 [API BY-USERNAME] Request received for username:', username);
+
     if (!username) {
+      console.log('❌ [API BY-USERNAME] No username provided');
       return NextResponse.json({ error: 'Username required' }, { status: 400 });
     }
-
-    console.log('[API] Looking up user by username:', username);
 
     // Query database for user with this username
     const { data: user, error } = await supabaseAdmin
@@ -22,19 +24,29 @@ export async function GET(req: NextRequest) {
       .maybeSingle(); // Use maybeSingle instead of single to avoid error if no user found
 
     if (error) {
-      console.error('[API] Error querying user:', error);
+      console.error('❌ [API BY-USERNAME] Database error:', error);
+      console.log('🔍 [API BY-USERNAME] ==================\n');
       return NextResponse.json({ error: 'Database error' }, { status: 500 });
     }
 
     if (!user) {
-      console.log('[API] User not found');
+      console.log('❌ [API BY-USERNAME] User not found in database');
+      console.log('🔍 [API BY-USERNAME] ==================\n');
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    console.log('[API] User found:', { id: user.id, wallet_address: user.wallet_address });
+    console.log('✅ [API BY-USERNAME] User found!');
+    console.log('📊 [API BY-USERNAME] Data:', {
+      id: user.id,
+      wallet_address: user.wallet_address,
+      onboarding_completed: user.onboarding_completed,
+      notifications_enabled: user.notifications_enabled
+    });
+    console.log('🔍 [API BY-USERNAME] ==================\n');
     return NextResponse.json({ user });
   } catch (error: any) {
-    console.error('[API] Error in by-username lookup:', error);
+    console.error('❌ [API BY-USERNAME] Exception:', error);
+    console.log('🔍 [API BY-USERNAME] ==================\n');
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

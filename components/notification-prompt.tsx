@@ -38,10 +38,10 @@ export function NotificationPrompt({ isOpen, onOpenChange, onComplete }: Notific
       console.log('[NotificationPrompt] Permission result:', finalPayload);
 
       if (finalPayload.status === 'success' || finalPayload.error_code === 'already_granted') {
-        console.log('[NotificationPrompt] Notifications enabled');
+        console.log('✅ [NOTIFICATION ENABLED #3] Prompt - User enabled notifications');
         onComplete(true);
       } else {
-        console.log('[NotificationPrompt] Notifications denied');
+        console.log('❌ [NOTIFICATION DISABLED] Prompt - User denied/skipped');
         onComplete(false);
       }
     } catch (error) {

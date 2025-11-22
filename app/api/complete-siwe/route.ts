@@ -90,6 +90,16 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Set session cookie
+      const responseCookies = await cookies();
+      responseCookies.set('user_session', payload.address, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30 // 30 days
+      });
+      console.log('[API] Session cookie set for:', payload.address);
+
       return NextResponse.json({
         status: 'success',
         isValid: true,
