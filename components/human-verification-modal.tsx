@@ -26,7 +26,7 @@ export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: Human
     setLoading(true)
     try {
       const { finalPayload } = await MiniKit.commandsAsync.verify({
-        action: "verify-human", // This is your action ID from the Developer Portal
+        action: "verifyhuman", // This is your action ID from the Developer Portal
         verification_level: VerificationLevel.Orb, // or VerificationLevel.Device
       })
 
@@ -39,7 +39,7 @@ export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: Human
           },
           body: JSON.stringify({
             payload: finalPayload as ISuccessResult,
-            action: "verify-human",
+            action: "verifyhuman",
             signal: undefined, // Optional
           }),
         })
