@@ -3,8 +3,9 @@
 import * as React from "react"
 import { NeoButton } from "./neo-button"
 import { NeoCard } from "./neo-card"
-import { Camera, ThumbsUp, Trophy } from "lucide-react"
+import { Camera, ThumbsUp, Trophy, Bell } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { Permission } from "@worldcoin/minikit-js"
 
 interface OnboardingScreenProps {
   onComplete: () => void
@@ -43,11 +44,18 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     },
   ]
 
+  const handleNotifications = () => {
+    // Placeholder for notification logic
+    console.log("Triggering notifications...")
+    onComplete() // Still call onComplete after handling notifications
+  }
+
   const handleNext = () => {
     if (step < steps.length - 1) {
       setStep(step + 1)
     } else {
-      onComplete()
+      // Instead of just completing, trigger notifications
+      handleNotifications()
     }
   }
 
