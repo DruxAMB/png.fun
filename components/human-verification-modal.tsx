@@ -31,6 +31,7 @@ export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: Human
       })
 
       if (finalPayload.status === "success") {
+        console.log("World ID verification successful, sending to backend...")
         const verifyRes = await fetch("/api/verify", {
           method: "POST",
           headers: {
@@ -44,12 +45,18 @@ export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: Human
         })
 
         const verifyData = await verifyRes.json()
-        if (verifyData.status === 200) {
+        console.log("Backend verification response:", verifyData)
+        
+        // Check if backend verification succeeded
+        if (verifyData.status === 200 || verifyData.verifyRes?.success) {
+          console.log("Backend verification successful! Opening camera...")
           // Verification successful - now open camera
           openCamera()
         } else {
-          console.error("Verification failed backend check")
+          console.error("Verification failed backend check:", verifyData)
         }
+      } else {
+        console.error("World ID verification failed:", finalPayload)
       }
     } catch (error) {
       console.error("Verification error:", error)
@@ -59,7 +66,7 @@ export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: Human
   }, [onVerify])
 
   const openCamera = () => {
-    // Close the modal first
+    // Close the modal first`
     onOpenChange(false)
     
     // Wait a bit for modal to close, then open camera
