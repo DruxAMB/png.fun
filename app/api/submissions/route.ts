@@ -11,15 +11,16 @@ interface SubmissionRequest {
 }
 
 export async function POST(req: NextRequest) {
-
   try {
     const { challengeId, userId, photoData } = (await req.json()) as SubmissionRequest;
+    console.log('Submission request received:', {
       challengeId,
       userId,
       photoDataLength: photoData?.length
     });
 
     if (!challengeId || !userId || !photoData) {
+      console.log('Missing required fields:', {
         challengeId: !!challengeId,
         userId: !!userId,
         photoData: !!photoData
@@ -53,7 +54,6 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-
   try {
     const { searchParams } = new URL(req.url);
     const challengeId = searchParams.get('challengeId');

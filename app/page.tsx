@@ -598,7 +598,6 @@ export default function Home() {
         hasChallenge: !!challenge,
         hasUserId: !!userId
       });
-      alert('Cannot submit photo: Missing required data. Please try again.');
       setShowPhotoPreview(false);
       return;
     }
@@ -648,11 +647,9 @@ export default function Home() {
         setShowSuccess(true);
       } else {
         console.error('[Frontend] Submission failed:', data.error);
-        alert('Submission failed: ' + (data.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('[Frontend] Error submitting photo:', error);
-      alert('Error submitting photo. Please try again.');
     } finally {
       setLoading(false);
       setShowPhotoPreview(false);
@@ -692,13 +689,11 @@ export default function Home() {
         setShowOnboarding(false);
       } catch (error) {
         console.error('[Frontend] Error updating DB:', error);
-        alert('Error saving onboarding status. Please try again.');
         // Don't hide onboarding on error
       }
     } else {
       // No wallet address, should not happen but handle gracefully
       console.error('[Frontend] No wallet address available');
-      alert('Please connect your wallet first');
     }
   };
 
