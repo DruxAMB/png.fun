@@ -29,9 +29,7 @@ export const metadata: Metadata = {
   },
 }
 
-import dynamic from "next/dynamic"
-
-const MiniKitProvider = dynamic(() => import("@/components/minikit-provider"), { ssr: false })
+import MiniKitProvider from "@/components/minikit-provider"
 
 export default function RootLayout({
   children,
