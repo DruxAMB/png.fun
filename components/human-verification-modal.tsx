@@ -9,7 +9,7 @@ import { useState, useCallback } from "react"
 interface HumanVerificationModalProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  onVerify: () => void
+  onVerify: (photoUrl?: string) => void
 }
 
 export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: HumanVerificationModalProps) {
@@ -18,8 +18,8 @@ export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: Human
   const handleVerify = useCallback(async () => {
     if (!MiniKit.isInstalled()) {
       console.warn("MiniKit not installed, falling back to mock verification for browser testing")
-      // For browser testing without MiniKit
-      onVerify()
+      // For browser testing without MiniKit - open camera directly
+      openCamera()
       return
     }
 
@@ -45,7 +45,8 @@ export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: Human
 
         const verifyData = await verifyRes.json()
         if (verifyData.status === 200) {
-          onVerify()
+          // Verification successful - now open camera
+          openCamera()
         } else {
           console.error("Verification failed backend check")
         }
@@ -56,6 +57,29 @@ export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: Human
       setLoading(false)
     }
   }, [onVerify])
+
+  const openCamera = () => {
+    // Create a file input element to access camera
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.capture = 'environment' // Use rear camera
+    
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          const imageUrl = event.target?.result as string
+          // Call onVerify with the captured image
+          onVerify(imageUrl)
+        }
+        reader.readAsDataURL(file)
+      }
+    }
+    
+    input.click()
+  }
 
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>

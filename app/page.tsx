@@ -190,8 +190,7 @@ export default function Home() {
   const [isVerificationOpen, setIsVerificationOpen] = React.useState(false)
   const [showPhotoPreview, setShowPhotoPreview] = React.useState(false)
   const [showSuccess, setShowSuccess] = React.useState(false)
-  // Mock captured photo
-  const capturedPhotoUrl = "/placeholder.svg?height=800&width=600&text=Captured+Photo"
+  const [capturedPhotoUrl, setCapturedPhotoUrl] = React.useState<string | null>(null)
 
   const handleVote = (photoId: string, vote: "up" | "down") => {}
 
@@ -199,14 +198,17 @@ export default function Home() {
     setIsVerificationOpen(true)
   }
 
-  const handleVerify = () => {
+  const handleVerify = (photoUrl?: string) => {
     setIsVerificationOpen(false)
-    // Simulate "camera" delay or transition if desired, but for now direct:
-    setShowPhotoPreview(true)
+    if (photoUrl) {
+      setCapturedPhotoUrl(photoUrl)
+      setShowPhotoPreview(true)
+    }
   }
 
   const handleRetake = () => {
     setShowPhotoPreview(false)
+    setCapturedPhotoUrl(null)
     setIsVerificationOpen(true)
   }
 
@@ -303,7 +305,7 @@ export default function Home() {
         onVerify={handleVerify}
       />
 
-      {showPhotoPreview && (
+      {showPhotoPreview && capturedPhotoUrl && (
         <PhotoPreviewScreen photoUrl={capturedPhotoUrl} onRetake={handleRetake} onSend={handleSend} />
       )}
 
