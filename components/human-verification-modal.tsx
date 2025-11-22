@@ -59,26 +59,32 @@ export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: Human
   }, [onVerify])
 
   const openCamera = () => {
-    // Create a file input element to access camera
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.capture = 'environment' // Use rear camera
+    // Close the modal first
+    onOpenChange(false)
     
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (file) {
-        const reader = new FileReader()
-        reader.onload = (event) => {
-          const imageUrl = event.target?.result as string
-          // Call onVerify with the captured image
-          onVerify(imageUrl)
+    // Wait a bit for modal to close, then open camera
+    setTimeout(() => {
+      // Create a file input element to access camera
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = 'image/*'
+      input.capture = 'environment' // Use rear camera
+      
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0]
+        if (file) {
+          const reader = new FileReader()
+          reader.onload = (event) => {
+            const imageUrl = event.target?.result as string
+            // Call onVerify with the captured image
+            onVerify(imageUrl)
+          }
+          reader.readAsDataURL(file)
         }
-        reader.readAsDataURL(file)
       }
-    }
-    
-    input.click()
+      
+      input.click()
+    }, 300) // 300ms delay to allow modal to close
   }
 
   return (
