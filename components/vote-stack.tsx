@@ -74,7 +74,7 @@ export function VoteStack({ photos, onVote }: VoteStackProps) {
 
   if (currentIndex >= photos.length) {
     return (
-      <div className="flex-1 flex items-center justify-center px-4">
+      <div className="flex-1 flex items-center justify-center px-6">
         <div className="text-center">
           <div className="text-6xl mb-4">🎉</div>
           <h2 className="text-2xl font-black uppercase mb-2">All Done!</h2>
@@ -87,7 +87,7 @@ export function VoteStack({ photos, onVote }: VoteStackProps) {
   const visiblePhotos = photos.slice(currentIndex, currentIndex + 3).reverse()
 
   return (
-    <div className="flex-1 flex flex-col px-4 overflow-hidden">
+    <div className="flex-1 flex flex-col px-6 overflow-hidden">
       {/* Card Stack */}
       <div className="relative flex-1 flex items-center justify-center mb-6">
         <div className="relative w-full max-w-sm aspect-[3/4]">

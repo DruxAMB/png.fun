@@ -26,7 +26,7 @@ export function LeaderboardScreen({ entries, currentUserRank }: LeaderboardScree
   const rest = entries.slice(3)
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 pb-24">
+    <div className="flex-1 overflow-y-auto px-6 pb-24">
       <div className="flex gap-2 mb-6 sticky top-5 z-10 bg-background/95 backdrop-blur pt-5 pb-2 -mt-4">
         <NeoButton
           className="flex-1"

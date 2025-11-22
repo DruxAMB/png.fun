@@ -275,7 +275,7 @@ export default function Home() {
             >
               <ChallengeHeader
                 title="Capture Your Best Sunset"
-                timeRemaining="8h 42m remaining"
+                timeRemaining="8h 42m"
                 submissionCount={2453}
                 prizePool="500 WLD"
                 isExpanded={isExpanded}

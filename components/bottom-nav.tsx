@@ -12,7 +12,7 @@ interface BottomNavProps {
 export function BottomNav({ activeTab, onTabChange, onCameraClick }: BottomNavProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t-[5px] border-foreground">
-      <div className="relative flex items-center justify-around h-20 px-4">
+      <div className="relative flex items-center justify-around h-20 px-6 pb-3">
         {/* Vote Tab */}
         <button
           onClick={() => onTabChange("vote")}

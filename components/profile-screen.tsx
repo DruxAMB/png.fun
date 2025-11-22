@@ -38,7 +38,7 @@ interface ProfileScreenProps {
 
 export function ProfileScreen({ data }: ProfileScreenProps) {
   return (
-    <div className="flex-1 overflow-y-auto px-4 pb-24 pt-6">
+    <div className="flex-1 overflow-y-auto px-6 pb-24 pt-6">
       {/* Profile Header */}
       <div className="text-center mb-6">
         <Avatar className="h-24 w-24 border-[5px] border-foreground mx-auto mb-4 neo-shadow">

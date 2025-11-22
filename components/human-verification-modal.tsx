@@ -107,7 +107,7 @@ export function HumanVerificationModal({ isOpen, onOpenChange, onVerify }: Human
               : "Please verify your World ID to capture and submit your daily challenge photo."}
           </p>
         </DrawerHeader>
-        <DrawerFooter className="pb-8 px-4">
+        <DrawerFooter className="pb-3 px-6">
           {verified ? (
             <>
               <input
