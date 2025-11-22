@@ -25,10 +25,36 @@ export async function POST(req: NextRequest) {
       
       // Mark user as World ID verified in database
       if (walletAddress) {
-        console.log("[API] Marking user as World ID verified:", walletAddress)
+        const nullifierHash = payload.nullifier_hash
+        const verificationLevel = payload.verification_level
+
+        console.log("[API] Checking for duplicate nullifier:", nullifierHash)
+
+        // Check if this World ID has already been used by ANOTHER user
+        const { data: existingUser } = await supabaseAdmin
+          .from('users')
+          .select('id, wallet_address')
+          .eq('world_id_nullifier', nullifierHash)
+          .neq('wallet_address', walletAddress) // Exclude current user (re-verification is fine)
+          .single()
+
+        if (existingUser) {
+          console.warn("[API] Duplicate World ID detected! Used by:", existingUser.walletAddress)
+          return NextResponse.json({ 
+            success: false, 
+            status: 400,
+            error: "This World ID has already been verified with another wallet." 
+          })
+        }
+
+        console.log("[API] Updating user verification:", walletAddress)
         const { error } = await supabaseAdmin
           .from('users')
-          .update({ world_id_verified: true })
+          .update({ 
+            world_id_verified: true,
+            world_id_nullifier: nullifierHash,
+            verification_level: verificationLevel
+          })
           .eq('wallet_address', walletAddress)
         
         if (error) {
