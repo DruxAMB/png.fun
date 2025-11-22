@@ -5,7 +5,7 @@ import { NeoButton } from "./neo-button"
 import { NeoCard } from "./neo-card"
 import { Camera, ThumbsUp, Trophy, Bell } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Permission } from "@worldcoin/minikit-js"
+import { MiniKit, Permission } from "@worldcoin/minikit-js"
 
 interface OnboardingScreenProps {
   onComplete: () => void
@@ -44,10 +44,28 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     },
   ]
 
-  const handleNotifications = () => {
-    // Placeholder for notification logic
-    console.log("Triggering notifications...")
-    onComplete() // Still call onComplete after handling notifications
+  const handleNotifications = async () => {
+    if (!MiniKit.isInstalled()) {
+      console.warn("MiniKit not installed, skipping notification request")
+      onComplete()
+      return
+    }
+
+    try {
+      const { finalPayload } = await MiniKit.commandsAsync.requestPermission({
+        permission: Permission.Notifications,
+      })
+
+      if (finalPayload.status === "success") {
+        console.log("Notifications enabled")
+      } else {
+        console.error("Permission request failed", finalPayload)
+      }
+    } catch (error) {
+      console.error("Notification request error:", error)
+    } finally {
+      onComplete()
+    }
   }
 
   const handleNext = () => {
