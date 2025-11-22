@@ -23,7 +23,20 @@ export async function GET() {
       return NextResponse.json({ challenge: null, message: 'No active challenge' })
     }
 
-    return NextResponse.json({ challenge })
+    // Calculate prize pool from total WLD voted on all submissions
+    const { data: submissions } = await supabaseAdmin
+      .from('submissions')
+      .select('total_wld_voted')
+      .eq('challenge_id', challenge.id)
+
+    const prizePool = submissions?.reduce((sum, sub) => sum + (sub.total_wld_voted || 0), 0) || 0
+
+    return NextResponse.json({ 
+      challenge: {
+        ...challenge,
+        prize_pool: prizePool
+      }
+    })
   } catch (error: any) {
     console.error('Challenge fetch error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })

@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS challenges (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   description TEXT,
-  prize_pool NUMERIC DEFAULT 0,
   start_time TIMESTAMP WITH TIME ZONE NOT NULL,
   end_time TIMESTAMP WITH TIME ZONE NOT NULL,
   status TEXT CHECK (status IN ('active', 'voting', 'completed')) DEFAULT 'active',

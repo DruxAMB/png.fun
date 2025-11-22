@@ -35,7 +35,7 @@ export type Challenge = {
   id: string
   title: string
   description: string
-  prize_pool: number
+  prize_pool?: number // Calculated dynamically from votes
   start_time: string
   end_time: string
   status: 'active' | 'voting' | 'completed'
