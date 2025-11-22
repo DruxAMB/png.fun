@@ -3,10 +3,11 @@
 import * as React from "react"
 import { NeoButton } from "./neo-button"
 import { NeoCard } from "./neo-card"
-import { Camera, ThumbsUp, Trophy, Bell } from "lucide-react"
+import { Camera, ThumbsUp, Trophy, Bell, Users } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { MiniKit, Permission } from "@worldcoin/minikit-js"
 import { SuccessScreen } from "./success-screen"
+import { useAuth } from "./minikit-provider"
 
 interface OnboardingScreenProps {
   onComplete: () => void
@@ -15,6 +16,7 @@ interface OnboardingScreenProps {
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const [step, setStep] = React.useState(0)
   const [showSuccess, setShowSuccess] = React.useState(false)
+  const authenticate = useAuth()
 
   const steps = [
     {
@@ -23,17 +25,17 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
           <Camera className="h-10 w-10" strokeWidth={3} />
         </div>
       ),
-      title: "Capture Moments",
-      description: "Submit your best photos for daily challenges and compete with others",
+      title: "Daily Challenges",
+      description: "Capture and submit photos for themed challenges every day",
     },
     {
       icon: (
         <div className="bg-primary text-primary-foreground p-6 rounded-full inline-flex items-center justify-center neo-shadow">
-          <ThumbsUp className="h-10 w-10" strokeWidth={3} />
+          <Users className="h-10 w-10" strokeWidth={3} />
         </div>
       ),
-      title: "Vote & Judge",
-      description: "Help decide winners by voting on submissions from the community",
+      title: "Vote & Predict",
+      description: "Vote on photos and predict winners to earn bonus rewards",
     },
     {
       icon: (
@@ -47,6 +49,15 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   ]
 
   const handleNotifications = async () => {
+    // First authenticate with World ID
+    const authSuccess = await authenticate()
+    
+    if (!authSuccess) {
+      console.warn("Authentication failed or skipped")
+      // Still proceed even if auth fails
+    }
+
+    // Then request notification permissions
     if (!MiniKit.isInstalled()) {
       console.warn("MiniKit not installed, skipping notification request")
       setShowSuccess(true)
