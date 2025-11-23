@@ -13,10 +13,11 @@ interface SubmissionRequest {
 export async function POST(req: NextRequest) {
   try {
     const { challengeId, userId, photoData } = (await req.json()) as SubmissionRequest;
+    const photoDataLength = photoData?.length || 0;
     console.log('Submission request received:', {
-      challengeId,
-      userId,
-      photoDataLength: photoData?.length
+      challengeId: challengeId,
+      userId: userId,
+      photoDataLength: photoDataLength
     });
 
     if (!challengeId || !userId || !photoData) {
