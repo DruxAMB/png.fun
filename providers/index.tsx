@@ -13,7 +13,7 @@ export default function ClientProviders({ children, session }: ClientProvidersPr
   // Initialize MiniKit on mount
   useEffect(() => {
     console.log('[MiniKit] Initializing MiniKit...');
-    MiniKit.install(process.env.NEXT_PUBLIC_APP_ID || 'app_a9e1e8a3c65d60bcf0432ec93883b524');
+    MiniKit.install(process.env.APP_ID || 'app_a7a17919b878ba65fbcbcc116bde80be');
   }, []);
 
   return (

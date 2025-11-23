@@ -187,6 +187,7 @@ export default function Home() {
   const [profileData, setProfileData] = React.useState<any>(null);
   const [votedSubmissionIds, setVotedSubmissionIds] = React.useState<Set<string>>(new Set());
   const [votesLoaded, setVotesLoaded] = React.useState(false);
+  const [votingInProgress, setVotingInProgress] = React.useState(false);
 
   const [checkingOnboarding, setCheckingOnboarding] = React.useState(true);
 
@@ -707,20 +708,72 @@ export default function Home() {
       return;
     }
 
+    if (votingInProgress) {
+      console.log('[Frontend] Vote already in progress, skipping');
+      return;
+    }
+
     console.log('[Frontend] Vote action:', { photoId, vote, userId });
 
     // Only create a vote for "up" (swipe right/yes)
     // "down" (swipe left) is just a skip, no vote created
     if (vote === 'up') {
       try {
-        console.log('[Frontend] Creating vote with 1 WLD...');
+        setVotingInProgress(true);
+        console.log('[Frontend] Processing vote payment via MiniKit...');
+        
+        // Generate unique payment reference (max 36 chars for MiniKit)
+        const timestamp = Date.now().toString().slice(-8); // Last 8 digits of timestamp
+        const randomId = Math.random().toString(36).substr(2, 6); // 6 char random string
+        const shortPhotoId = photoId.slice(-8); // Last 8 chars of photo ID
+        const paymentRef = `v_${shortPhotoId}_${timestamp}_${randomId}`.substring(0, 36); // Ensure max 36 chars
+        
+        // Use MiniKit Pay to send WLD to contract
+        const { MiniKit, Tokens, tokenToDecimals } = await import('@worldcoin/minikit-js');
+        
+        const voteAmount = 0.01; // 0.01 WLD per vote (adjust as needed)
+        const contractAddress = process.env.NEXT_PUBLIC_PNG_FUN_CONTRACT_ADDRESS || '0xF29d3AEaf0cCD69F909FD999AebA1033C6859eAF';
+        
+        if (!contractAddress) {
+          throw new Error('Contract address not configured');
+        }
+        
+        console.log('[Frontend] Initiating payment:', {
+          reference: paymentRef,
+          referenceLength: paymentRef.length,
+          to: contractAddress,
+          amount: voteAmount,
+          description: `Vote for submission #${photoId}`
+        });
+        
+        const paymentResult = await MiniKit.commandsAsync.pay({
+          reference: paymentRef,
+          to: contractAddress,
+          tokens: [{
+            symbol: Tokens.WLD,
+            token_amount: tokenToDecimals(voteAmount, Tokens.WLD).toString(),
+          }],
+          description: `Vote for submission #${photoId} with ${voteAmount} WLD`,
+        });
+        
+        console.log('[Frontend] Payment result:', paymentResult.finalPayload);
+        
+        if (paymentResult.finalPayload.status !== 'success') {
+          throw new Error(`Payment failed: ${paymentResult.finalPayload.status}`);
+        }
+        
+        console.log('[Frontend] Payment successful, creating vote record...');
+        
+        // Create vote record in database
         const response = await fetch('/api/votes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             submissionId: photoId,
             voterId: userId,
-            wldAmount: 1 // Each yes vote adds 1 WLD
+            wldAmount: voteAmount,
+            paymentReference: paymentRef,
+            transactionId: paymentResult.finalPayload.transaction_id || 'minikit_pay'
           })
         });
 
@@ -749,7 +802,25 @@ export default function Home() {
           await fetchSubmissions(challenge.id);
         }
       } catch (error) {
-        console.error('[Frontend] Failed to create vote:', error);
+        console.error('[Frontend] Vote payment failed:', error);
+        
+        // Show user-friendly error message
+        if (error instanceof Error) {
+          if (error.message.includes('Payment failed')) {
+            alert('Payment failed. Please check your WLD balance and try again.');
+          } else if (error.message.includes('rejected')) {
+            alert('Payment was rejected. Please try again.');
+          } else {
+            alert('Vote failed. Please try again.');
+          }
+        } else {
+          alert('Vote failed. Please try again.');
+        }
+        
+        // Don't mark as voted if payment failed
+        return;
+      } finally {
+        setVotingInProgress(false);
       }
     } else {
       console.log('[Frontend] Skipped (swiped left), no vote created');

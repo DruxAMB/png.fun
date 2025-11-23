@@ -77,7 +77,7 @@ This scratchpad tracks development tasks and progress for the PNG.FUN applicatio
      - `NEXTAUTH_SECRET` - NextAuth encryption key
      - `AUTH_URL` - App URL for NextAuth callbacks
      - `HMAC_SECRET_KEY` - For nonce signing
-     - `NEXT_PUBLIC_APP_ID` - World app ID
+     - `APP_ID` - World app ID
      - `NEXT_PUBLIC_APP_ENV` - development/production
 
 9. **TypeScript Declarations** (`types/next-auth.d.ts`):
@@ -342,7 +342,7 @@ This scratchpad tracks development tasks and progress for the PNG.FUN applicatio
 **Next Steps**:
 The human user should:
 
-1. Verify `.env.local` has correct values (especially `NEXT_PUBLIC_APP_ID`)
+1. Verify `.env.local` has correct values (especially `APP_ID`)
 2. Test authentication flow in World App mini app
 3. Confirm user records are being created/updated in Supabase
 4. Test existing functionality (voting, leaderboard, profile) still works

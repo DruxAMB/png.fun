@@ -16,7 +16,7 @@ Create `.env.local`:
 NEXTAUTH_SECRET=your-secret-here          # npx auth secret
 AUTH_URL=http://localhost:3000            # or ngrok URL
 HMAC_SECRET_KEY=your-hmac-secret          # openssl rand -hex 32
-NEXT_PUBLIC_APP_ID=app_staging_xxxxx      # from developer.worldcoin.org
+APP_ID=app_staging_xxxxx      # from developer.worldcoin.org
 NEXT_PUBLIC_APP_ENV=development
 ```
 
@@ -285,7 +285,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req) {
   const { payload, action, signal } = await req.json();
-  const app_id = process.env.NEXT_PUBLIC_APP_ID;
+  const app_id = process.env.APP_ID;
 
   const verifyRes = await verifyCloudProof(payload, app_id, action, signal);
 
@@ -349,7 +349,7 @@ export const Transaction = () => {
 
   const { isConfirmed } = useWaitForTransactionReceipt({
     client,
-    appConfig: { app_id: process.env.NEXT_PUBLIC_APP_ID },
+    appConfig: { app_id: process.env.APP_ID },
     transactionId
   });
 

@@ -37,7 +37,7 @@ Your app has been successfully migrated to use the official World MiniKit archit
 NEXTAUTH_SECRET="..." # Auto-generated
 AUTH_URL=http://localhost:3000 # Update with ngrok for testing
 HMAC_SECRET_KEY="..." # For nonce security
-NEXT_PUBLIC_APP_ID=app_a9e1e8a3c65d60bcf0432ec93883b524
+APP_ID=app_a7a17919b878ba65fbcbcc116bde80be
 NEXT_PUBLIC_APP_ENV=development
 ```
 
@@ -135,7 +135,7 @@ Restart your dev server after updating AUTH_URL.
 1. Go to [developer.worldcoin.org](https://developer.worldcoin.org)
 2. Select your app
 3. Add your ngrok URL to allowed origins
-4. Make sure your `NEXT_PUBLIC_APP_ID` matches
+4. Make sure your `APP_ID` matches
 
 ### 4. Test in World App
 

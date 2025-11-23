@@ -5,14 +5,16 @@ interface VoteRequest {
   submissionId: string
   voterId: string
   wldAmount: number
+  paymentReference?: string
+  transactionId?: string
 }
 
 export async function POST(req: NextRequest) {
   console.log('[API] Creating vote...')
   
   try {
-    const { submissionId, voterId, wldAmount } = (await req.json()) as VoteRequest
-    console.log('[API] Vote request:', { submissionId, voterId, wldAmount })
+    const { submissionId, voterId, wldAmount, paymentReference, transactionId } = (await req.json()) as VoteRequest
+    console.log('[API] Vote request:', { submissionId, voterId, wldAmount, paymentReference, transactionId })
 
     if (!submissionId || !voterId || !wldAmount) {
       console.error('[API] Missing required fields')
@@ -39,6 +41,8 @@ export async function POST(req: NextRequest) {
         voter_id: voterId,
         wld_amount: wldAmount,
         status: 'active',
+        payment_reference: paymentReference,
+        tx_hash: transactionId,
       })
       .select()
       .single()
