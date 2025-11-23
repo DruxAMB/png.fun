@@ -67,16 +67,15 @@ export function LeaderboardScreen({
             initial={{ opacity: 0, height: 0, marginBottom: 0 }}
             animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-            className="overflow-hidden"
           >
-            <NeoCard className="overflow-hidden p-0 mt-5">
+            <NeoCard className="p-0 mt-10">
               <div className="bg-primary py-3 px-4 border-b-2 border-black flex items-center justify-center gap-2">
                 <Trophy className="w-4 h-4 text-primary-foreground fill-current" />
                 <h2 className="text-primary-foreground font-black uppercase text-sm tracking-wider">
                   Yesterday's Winner
                 </h2>
               </div>
-              <div className="relative aspect-video bg-muted">
+              <div className="relative aspect-video bg-muted overflow-hidden">
                 <img
                   src={entries[0].imageUrl || '/placeholder.svg'}
                   alt={`Winner ${entries[0].username}`}

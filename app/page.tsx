@@ -186,6 +186,7 @@ export default function Home() {
   });
   const [profileData, setProfileData] = React.useState<any>(null);
   const [votedSubmissionIds, setVotedSubmissionIds] = React.useState<Set<string>>(new Set());
+  const [votesLoaded, setVotesLoaded] = React.useState(false);
 
   const [checkingOnboarding, setCheckingOnboarding] = React.useState(true);
 
@@ -362,8 +363,8 @@ export default function Home() {
           'WLD'
         );
         setChallenge(data.challenge);
-        // Fetch submissions for this challenge
-        fetchSubmissions(data.challenge.id);
+        // Don't fetch submissions here - wait for votes to load first
+        // Submissions will be fetched when challenge + votes are ready
       } else {
         console.log('[Frontend] No active challenge found');
       }
@@ -375,7 +376,10 @@ export default function Home() {
   // Fetch submissions for voting
   // Fetch user's votes for the current challenge
   const fetchUserVotes = async () => {
-    if (!userId) return;
+    if (!userId) {
+      setVotesLoaded(true); // No user, so votes are "loaded" (empty)
+      return;
+    }
 
     console.log('[Frontend] Fetching user votes for userId:', userId);
     try {
@@ -390,8 +394,10 @@ export default function Home() {
         console.log('[Frontend] Voted submission IDs:', Array.from(votedIds));
         setVotedSubmissionIds(votedIds);
       }
+      setVotesLoaded(true);
     } catch (error) {
       console.error('[Frontend] Error fetching user votes:', error);
+      setVotesLoaded(true); // Set to true even on error to avoid blocking
     }
   };
 
@@ -668,13 +674,18 @@ export default function Home() {
     }
   }, [userId]);
 
-  // Refetch submissions when voted submission IDs change (to filter them out)
+  // Fetch submissions when challenge is loaded AND votes are loaded
+  // This prevents the flicker of showing voted submissions briefly
   useEffect(() => {
-    if (challenge?.id && votedSubmissionIds.size > 0) {
-      console.log('[Frontend] Voted submissions updated, refetching to filter...');
+    if (challenge?.id && votesLoaded) {
+      console.log(
+        '[Frontend] Challenge and votes ready, fetching submissions with',
+        votedSubmissionIds.size,
+        'votes to filter'
+      );
       fetchSubmissions(challenge.id);
     }
-  }, [votedSubmissionIds]);
+  }, [challenge?.id, votesLoaded]);
 
   // Show loading screen while checking user/onboarding
   if (isLoading || checkingOnboarding) {
