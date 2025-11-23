@@ -21,6 +21,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(false);
   const [isConnecting, setIsConnecting] = React.useState(false);
+  const [isComplete, setIsComplete] = React.useState(false);
   const { data: session, status } = useSession();
   const isAuthenticated = status === 'authenticated';
 
@@ -106,6 +107,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     console.log('[Onboarding] Notifications complete, enabled:', enabled);
     setShowNotifications(false);
     setNotificationsEnabled(enabled);
+    setIsComplete(true); // Mark as complete before calling parent
 
     // Complete onboarding - parent will handle DB update with session data
     onComplete(enabled);
@@ -126,7 +128,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
 
   return (
     <>
-      {!showNotifications && (
+      {!showNotifications && !isComplete && (
         <div className="fixed inset-0 bg-background z-50 flex flex-col items-center justify-center px-6">
           <div className="w-full max-w-md">
             {/* Logo */}
