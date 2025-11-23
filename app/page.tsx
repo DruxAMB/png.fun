@@ -15,7 +15,7 @@ import { SuccessScreen } from '@/components/success-screen';
 import { NotificationPrompt } from '@/components/notification-prompt';
 import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useUser } from '@/components/minikit-provider';
+import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 import { MiniKit } from '@worldcoin/minikit-js';
 
@@ -189,8 +189,11 @@ export default function Home() {
 
   const [checkingOnboarding, setCheckingOnboarding] = React.useState(true);
 
-  // Get authenticated user
-  const user = useUser();
+  // Get authenticated session from NextAuth
+  const { data: session, status } = useSession();
+  const isLoading = status === 'loading';
+  const isAuthenticated = status === 'authenticated';
+  const walletAddress = session?.user?.walletAddress;
 
   // Don't show onboarding immediately - wait for DB check
   // This useEffect is now handled by the fetchUserData effect below
@@ -199,22 +202,22 @@ export default function Home() {
   useEffect(() => {
     const fetchUserData = async () => {
       console.log('[Frontend] Checking user data...', {
-        isLoading: user.isLoading,
-        isAuthenticated: user.isAuthenticated,
-        walletAddress: user.walletAddress
+        isLoading,
+        isAuthenticated,
+        walletAddress
       });
 
       // Wait for auth attempt to complete
-      if (user.isLoading) return;
+      if (isLoading) return;
 
-      if (user.isAuthenticated && user.walletAddress && supabase) {
+      if (isAuthenticated && walletAddress && supabase) {
         console.log('[Frontend] User authenticated, fetching from database...');
         const { data, error } = await supabase
           .from('users')
           .select(
             'id, world_id_verified, onboarding_completed, notifications_enabled, username, profile_picture_url, total_wld_earned, total_wins'
           )
-          .eq('wallet_address', user.walletAddress)
+          .eq('wallet_address', walletAddress)
           .single();
 
         if (error) {
@@ -254,7 +257,7 @@ export default function Home() {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
-                        walletAddress: user.walletAddress,
+                        walletAddress: walletAddress,
                         notificationsEnabled: true
                       })
                     });
@@ -267,19 +270,19 @@ export default function Home() {
             setShowOnboarding(true);
           }
 
-          // If username/PFP is missing in DB, sync from MiniKit
+          // If username/PFP is missing in DB, sync from session
           if (
             (!data.username || !data.profile_picture_url) &&
-            (MiniKit.user?.username || MiniKit.user?.profilePictureUrl)
+            (session?.user?.username || session?.user?.profilePictureUrl)
           ) {
             try {
               await fetch('/api/user/status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  walletAddress: user.walletAddress,
-                  username: MiniKit.user.username,
-                  profilePictureUrl: MiniKit.user.profilePictureUrl
+                  walletAddress: walletAddress,
+                  username: session.user.username,
+                  profilePictureUrl: session.user.profilePictureUrl
                 })
               });
             } catch (e) {}
@@ -288,7 +291,7 @@ export default function Home() {
           // Note: Removed auto-sync of notification status to prevent race conditions
           // DB is the source of truth for notifications_enabled
         }
-      } else if (!user.isAuthenticated) {
+      } else if (!isAuthenticated) {
         console.log('[Frontend] User not authenticated, showing onboarding for sign-in');
         setShowOnboarding(true);
       }
@@ -297,7 +300,7 @@ export default function Home() {
     };
 
     fetchUserData();
-  }, [user.isAuthenticated, user.walletAddress, user.isLoading]);
+  }, [isAuthenticated, walletAddress, isLoading, session]);
 
   // Check if user has already submitted for current challenge
   useEffect(() => {
@@ -404,8 +407,8 @@ export default function Home() {
           .map((sub: any) => {
             // Fallback to local username if this is the current user's submission and API returned null
             let displayUsername = sub.user?.username;
-            if (!displayUsername && sub.user_id === userId && user.username) {
-              displayUsername = user.username;
+            if (!displayUsername && sub.user_id === userId && session?.user?.username) {
+              displayUsername = session.user.username;
             }
 
             return {
@@ -459,9 +462,9 @@ export default function Home() {
           }));
 
           // Calculate current user's rank and update stats
-          if (user.walletAddress) {
+          if (walletAddress) {
             const userIndex = data.leaderboard.findIndex(
-              (u: any) => u.wallet_address === user.walletAddress
+              (u: any) => u.wallet_address === walletAddress
             );
             if (userIndex !== -1) {
               const userData = data.leaderboard[userIndex];
@@ -627,8 +630,9 @@ export default function Home() {
       }));
 
       const profile = {
-        username: userData.username || user.username || 'You',
-        avatarUrl: userData.profile_picture_url || user.profilePictureUrl || '/placeholder.svg',
+        username: userData.username || session?.user?.username || 'You',
+        avatarUrl:
+          userData.profile_picture_url || session?.user?.profilePictureUrl || '/placeholder.svg',
         wld: userData.total_wld_earned || 0,
         wins: userData.total_wins || 0,
         streak: userData.current_streak || 0,
@@ -673,7 +677,7 @@ export default function Home() {
   }, [votedSubmissionIds]);
 
   // Show loading screen while checking user/onboarding
-  if (user.isLoading || checkingOnboarding) {
+  if (isLoading || checkingOnboarding) {
     return (
       <div className="fixed inset-0 bg-background flex items-center justify-center z-100">
         <div className="flex flex-col items-center gap-4">
@@ -844,17 +848,17 @@ export default function Home() {
       notificationsEnabled
     );
 
-    if (user.walletAddress) {
+    if (walletAddress) {
       try {
         const response = await fetch('/api/user/status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            walletAddress: user.walletAddress,
+            walletAddress: walletAddress,
             onboardingCompleted: true,
             notificationsEnabled: notificationsEnabled,
-            username: user.username || MiniKit.user?.username,
-            profilePictureUrl: user.profilePictureUrl || MiniKit.user?.profilePictureUrl
+            username: session?.user?.username || MiniKit.user?.username,
+            profilePictureUrl: session?.user?.profilePictureUrl || MiniKit.user?.profilePictureUrl
           })
         });
 
@@ -882,13 +886,13 @@ export default function Home() {
     console.log('📝 [NOTIFICATION PROMPT] Saving to DB - enabled:', enabled);
     setShowNotificationPrompt(false);
 
-    if (user.walletAddress) {
+    if (walletAddress) {
       try {
         await fetch('/api/user/status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            walletAddress: user.walletAddress,
+            walletAddress: walletAddress,
             notificationsEnabled: enabled
           })
         });
@@ -989,8 +993,8 @@ export default function Home() {
                 entries={leaderboardData}
                 currentUserRank={userStats.rank || 15}
                 currentUser={{
-                  username: user.username || 'You',
-                  avatarUrl: user.profilePictureUrl || '/placeholder.svg',
+                  username: session?.user?.username || 'You',
+                  avatarUrl: session?.user?.profilePictureUrl || '/placeholder.svg',
                   wld: userStats.wld,
                   wins: userStats.wins,
                   imageUrl: userSubmission?.photo_url || '/placeholder.svg'
@@ -1011,7 +1015,7 @@ export default function Home() {
         onOpenChange={setIsVerificationOpen}
         onVerify={handleVerify}
         isVerified={isWorldIdVerified}
-        walletAddress={user.walletAddress}
+        walletAddress={walletAddress}
       />
 
       <AlreadySubmittedModal

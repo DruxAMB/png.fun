@@ -7,7 +7,8 @@ import { Camera, Trophy, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SuccessScreen } from './success-screen';
 import { MiniKit, Permission } from '@worldcoin/minikit-js';
-import { useUser, useAuth } from '@/components/minikit-provider';
+import { useSession } from 'next-auth/react';
+import { walletAuth } from '@/auth/wallet';
 
 interface OnboardingScreenProps {
   onComplete: (notificationsEnabled: boolean) => void;
@@ -17,8 +18,8 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const [step, setStep] = React.useState(0);
   const [showSuccess, setShowSuccess] = React.useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(false);
-  const { isAuthenticated } = useUser();
-  const authenticate = useAuth();
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === 'authenticated';
 
   const steps = [
     {
@@ -66,11 +67,11 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     // 1. Authenticate if needed
     if (!isAuthenticated) {
       console.log('[Onboarding] User not authenticated, triggering login...');
-      const success = await authenticate();
-      console.log('[Onboarding] Authentication result:', success);
-
-      if (!success) {
-        console.log('[Onboarding] Authentication failed or cancelled');
+      try {
+        await walletAuth();
+        console.log('[Onboarding] Authentication completed');
+      } catch (error) {
+        console.log('[Onboarding] Authentication failed or cancelled:', error);
         return;
       }
     } else {
@@ -230,8 +231,9 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
             onClick={async () => {
               // If not authenticated, authenticate first
               if (!isAuthenticated) {
-                const success = await authenticate();
-                if (!success) {
+                try {
+                  await walletAuth();
+                } catch (error) {
                   alert('Please connect your wallet to continue');
                   return;
                 }
