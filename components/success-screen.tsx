@@ -76,9 +76,8 @@ export function SuccessScreen({ onContinue, type = "challenge" }: SuccessScreenP
           <>
             <div className="flex items-center justify-center gap-2 mb-2 text-xl font-bold">
               <Trophy className="h-6 w-6 text-yellow-300 fill-yellow-300" />
-              <span>Earned</span>
+              <span>Pic Submitted</span>
             </div>
-            <div className="text-center text-3xl font-black text-white">+50 WLD</div>
           </>
         )}
       </motion.div>

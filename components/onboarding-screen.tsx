@@ -147,7 +147,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
                 transition={{ delay: 0.2, duration: 0.5 }}
                 className="text-sm font-bold text-muted-foreground uppercase"
               >
-                Social Photo Gaming
+                May The Best Pic Win
               </motion.div>
             </div>
 

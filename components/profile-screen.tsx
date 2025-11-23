@@ -2,9 +2,11 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { NeoCard } from './neo-card';
-import { Trophy, Zap, Flame } from 'lucide-react';
+import { NeoButton } from './neo-button';
+import { Trophy, Zap, Flame, Download, Clock, X } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSession } from 'next-auth/react';
+import { useState } from 'react';
 
 interface ProfileData {
   username: string;
@@ -40,6 +42,8 @@ interface ProfileScreenProps {
 export function ProfileScreen({ data }: ProfileScreenProps) {
   const { data: session, status } = useSession();
   const isAuthenticated = status === 'authenticated';
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
 
   // Use real user data if authenticated, otherwise fall back to mock data
   const displayUsername =
@@ -49,6 +53,11 @@ export function ProfileScreen({ data }: ProfileScreenProps) {
       ? session.user.profilePictureUrl
       : data.avatarUrl;
   const displayWalletAddress = session?.user?.walletAddress || null;
+
+  // Handle claim button click - show modal about waiting for timeline to end
+  const handleClaimWLD = () => {
+    setShowClaimModal(true);
+  };
 
   return (
     <div className="flex-1 overflow-y-auto px-6 pb-24 pt-6">
@@ -66,10 +75,16 @@ export function ProfileScreen({ data }: ProfileScreenProps) {
             {displayWalletAddress.slice(0, 6)}...{displayWalletAddress.slice(-4)}
           </p>
         )}
-        <Badge className="bg-primary text-primary-foreground font-black border-2 border-foreground">
-          <Zap className="h-3 w-3 mr-1" />
-          {data.wld} WLD
-        </Badge>
+        {/* Claim WLD Button - Shows when user has WLD > 0 */}
+        {isAuthenticated && data.wld > 0 && (
+            <Badge
+              onClick={handleClaimWLD}
+              className="bg-green-600 hover:bg-green-700 text-white font-black border-2 border-foreground"
+            >
+              <Download className="mr-2 w-fit" />
+              Claim {data.wld} WLD
+            </Badge>
+        )}
       </div>
 
       {/* Stats Grid */}
@@ -90,12 +105,17 @@ export function ProfileScreen({ data }: ProfileScreenProps) {
           <div className="text-[10px] font-black uppercase text-muted-foreground">Streak</div>
         </NeoCard>
 
-        <NeoCard className="text-center p-2 py-3 flex flex-col items-center justify-center">
+        <NeoCard className="text-center p-2 py-3 flex flex-col items-center justify-center relative">
           <div className="bg-primary text-primary-foreground p-1.5 rounded-md inline-flex mb-1.5 shadow-sm">
             <Zap className="h-5 w-5" strokeWidth={3} />
           </div>
           <div className="text-2xl font-black">{data.totalWldEarned}</div>
           <div className="text-[10px] font-black uppercase text-muted-foreground">Earned</div>
+          {data.wld > 0 && (
+            <div className="absolute -top-1 -right-1 bg-green-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border border-foreground">
+              {data.wld} pending
+            </div>
+          )}
         </NeoCard>
       </div>
 
@@ -122,7 +142,7 @@ export function ProfileScreen({ data }: ProfileScreenProps) {
             <NeoCard key={prediction.id} className="p-3 overflow-hidden">
               <div className="flex gap-3">
                 {/* Predicted Image */}
-                <div className="relative w-20 h-20 flex-shrink-0">
+                <div className="relative w-20 h-20 shrink-0">
                   <img
                     src={prediction.imageUrl || '/placeholder.svg'}
                     alt="Predicted winner"
@@ -198,6 +218,57 @@ export function ProfileScreen({ data }: ProfileScreenProps) {
           ))}
         </TabsContent>
       </Tabs>
+
+      {/* Claim WLD Modal */}
+      {showClaimModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md bg-background border-[5px] border-foreground neo-shadow rounded-lg p-6">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-black uppercase">Claim WLD</h3>
+              </div>
+              <button
+                onClick={() => setShowClaimModal(false)}
+                className="p-1 hover:bg-muted rounded-md transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className="bg-primary/10 border-2 border-primary/20 rounded-lg p-4 mb-4">
+                  <Zap className="h-8 w-8 text-primary mx-auto mb-2" />
+                  <div className="text-2xl font-black text-primary">{data.wld} WLD</div>
+                  <div className="text-sm text-muted-foreground">Ready to claim</div>
+                </div>
+              </div>
+
+              <div className="bg-muted/50 border border-muted-foreground/20 rounded-lg p-4">
+                <p className="text-sm text-center">
+                  <strong className="text-foreground">WLD claims are available after the challenge timeline ends.</strong>
+                </p>
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Your earned WLD will be available for withdrawal when the current challenge period completes.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <NeoButton
+                  onClick={() => setShowClaimModal(false)}
+                  variant="secondary"
+                  className="flex-1"
+                >
+                  Got it
+                </NeoButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
